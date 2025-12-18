@@ -39,6 +39,8 @@ public class GoogleCalendarService {
 
     private static final String JJDC_CALENDAR_SUMMARY = "JJDC";
     private static final ZoneId DEFAULT_TIMEZONE = ZoneId.of("UTC");
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final String KST_ID = "Asia/Seoul";
 
     private final GoogleOAuthTokenService googleOAuthTokenService;
     private final GoogleCalendarAiService googleCalendarAiService;
@@ -111,8 +113,8 @@ public class GoogleCalendarService {
             return new GoogleCalendarSuggestResponse(eventId, null);
         }
         GoogleCalendarAppendRequest appendRequest = parsed.get();
-        OffsetDateTime start = toOffset(detail.start());
-        OffsetDateTime end = toOffset(detail.end());
+        OffsetDateTime start = toKst(toOffset(detail.start()));
+        OffsetDateTime end = toKst(toOffset(detail.end()));
         GoogleCalendarAiResponse aiResponse = googleCalendarAiService.requestAppendAiResult(
                 eventId,
                 detail.summary(),
@@ -148,7 +150,7 @@ public class GoogleCalendarService {
         if (request.startAt() == null) {
             throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "startAt은 필수입니다.");
         }
-        OffsetDateTime start = request.startAt();
+        OffsetDateTime start = toKst(request.startAt());
         OffsetDateTime end = ensureEndAfterStart(start, null);
         List<SuggestDto> suggestions = describeSuggestAsSingle(request.suggest());
         String description = describeManualContent(request.suggest(), suggestions);
@@ -270,13 +272,15 @@ public class GoogleCalendarService {
     ) {
         OffsetDateTime start = aiResponse.startAt() != null ? aiResponse.startAt() : request.startAt();
         OffsetDateTime end = aiResponse.endAt() != null ? aiResponse.endAt() : request.endAt();
+        OffsetDateTime startKst = toKst(start);
+        OffsetDateTime endKst = toKst(end);
         String summary = buildSummary(request);
         String description = describeAiBenefits(request, aiResponse);
         return new GoogleCalendarClient.GoogleCalendarEventInsertRequest(
                 summary,
                 description,
-                new GoogleCalendarClient.GoogleEventDateTime(start.toInstant(), "UTC", null),
-                new GoogleCalendarClient.GoogleEventDateTime(end.toInstant(), "UTC", null)
+                new GoogleCalendarClient.GoogleEventDateTime(startKst.toInstant(), KST_ID, null),
+                new GoogleCalendarClient.GoogleEventDateTime(endKst.toInstant(), KST_ID, null)
         );
     }
 
@@ -355,6 +359,14 @@ public class GoogleCalendarService {
 
     private Instant fallbackStart() {
         return Instant.now();
+    }
+
+    private OffsetDateTime toKst(OffsetDateTime dateTime) {
+        ZoneOffset kstOffset = ZoneOffset.ofHours(9);
+        if (dateTime == null) {
+            return OffsetDateTime.now(KST).withOffsetSameLocal(kstOffset);
+        }
+        return dateTime.withOffsetSameLocal(kstOffset);
     }
 
     private List<SuggestDto> toAiSuggestions(GoogleCalendarAiResponse aiResponse) {

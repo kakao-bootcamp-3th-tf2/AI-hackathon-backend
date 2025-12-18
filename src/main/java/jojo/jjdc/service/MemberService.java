@@ -4,7 +4,7 @@ import java.util.List;
 import jojo.jjdc.domain.member.Member;
 import jojo.jjdc.domain.member.MemberStatus;
 import jojo.jjdc.domain.member.OAuthProvider;
-import jojo.jjdc.repository.member.MemberRepository;
+import jojo.jjdc.repository.MemberRepository;
 import jojo.jjdc.common.exception.BusinessException;
 import jojo.jjdc.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;

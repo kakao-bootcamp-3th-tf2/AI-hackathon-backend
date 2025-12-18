@@ -1,0 +1,7 @@
+spring:
+  config:
+    import: optional:application-secret.yaml
+
+  application:
+    name: jjdc
+

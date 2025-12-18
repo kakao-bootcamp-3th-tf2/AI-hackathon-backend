@@ -1,0 +1,146 @@
+name: Java CI/CD
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - dev
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. PR 시 빌드 검증 (모든 브랜치 대상)
+  # 2. 모든 브랜치 push 시 빌드 검증 (main 제외 - main은 build-and-deploy에서 처리)
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/dev')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build JAR
+        run: ./gradlew bootJar -x test --build-cache --parallel
+
+  # 3. main push 시 빌드 + Docker Hub push + 배포
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build JAR
+        run: ./gradlew bootJar -x test --build-cache --parallel
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and Push Docker Image to Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME_BACKEND }}:latest
+          platforms: linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.APP_INSTANCE_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Docker 설치 여부 체크 및 설치
+            if ! command -v docker &> /dev/null; then
+              echo "Docker not found. Installing..."
+              sudo apt-get update
+              sudo apt-get install -y ca-certificates curl gnupg
+              sudo install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              sudo chmod a+r /etc/apt/keyrings/docker.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              sudo usermod -aG docker ubuntu
+              echo "Docker installed successfully"
+            else
+              echo "Docker is already installed"
+            fi
+            
+            cd /home/ubuntu/prod
+            
+            # Docker Hub 로그인
+            echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+            
+            # docker-compose 업데이트
+            cat > docker-compose.backend.yaml << 'EOF'
+            services:
+              backend:
+                image: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_IMAGE_NAME_BACKEND }}:latest
+                container_name: jjdc-backend
+                restart: unless-stopped
+                ports:
+                  - "8080:8080"
+                environment:
+                  - SPRING_PROFILES_ACTIVE=prod
+                  - SPRING_CONFIG_IMPORT=file:/app/config/application-secret.yaml
+                volumes:
+                  - /opt/secrets/application-secret.yaml:/app/config/application-secret.yaml:ro
+                  - backend_logs:/app/logs
+                networks:
+                  - jjdc-network
+
+            networks:
+              jjdc-network:
+                name: jjdc-network
+                external: true
+
+            volumes:
+              backend_logs:
+            EOF
+            
+            # 네트워크 생성 (없으면)
+            docker network inspect jjdc-network >/dev/null 2>&1 || docker network create jjdc-network
+            
+            # 이미지 pull 및 컨테이너 재시작
+            docker compose -f docker-compose.backend.yaml pull backend
+            docker compose -f docker-compose.backend.yaml up -d --force-recreate backend
+            
+            echo "Deployment completed successfully"

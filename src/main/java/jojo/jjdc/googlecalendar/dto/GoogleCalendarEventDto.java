@@ -19,7 +19,7 @@ public record GoogleCalendarEventDto(
         Instant endAt,
 
         @Schema(description = "AI가 추천한 혜택 리스트")
-        List<GoogleCalendarAiSuggestion> suggestList,
+        List<SuggestDto> suggestList,
 
         @Schema(description = "일정의 description/본문 내용")
         String content

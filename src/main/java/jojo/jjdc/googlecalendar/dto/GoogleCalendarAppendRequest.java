@@ -8,5 +8,8 @@ public record GoogleCalendarAppendRequest(
         String category,
 
         @Schema(description = "AI로 분석할 일정의 브랜드명(선택)", example = "JJDC Money")
-        String brand
+        String brand,
+
+        @Schema(description = "AI 제안 리스트가 필요하면 true", example = "true")
+        boolean needSuggestList
 ) { }

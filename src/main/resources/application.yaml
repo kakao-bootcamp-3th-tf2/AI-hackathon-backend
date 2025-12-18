@@ -34,11 +34,11 @@ spring:
 
 jwt:
   access:
-    secret: ${JWT_ACCESS_SECRET:change-me-access}
     ttl: PT30M
+    secret: ${JWT_ACCESS_SECRET:change-me-access}
   refresh:
-    secret: ${JWT_REFRESH_SECRET:change-me-refresh}
     ttl: P14D
+    secret: ${JWT_REFRESH_SECRET:change-me-refresh}
 
 app:
   front:

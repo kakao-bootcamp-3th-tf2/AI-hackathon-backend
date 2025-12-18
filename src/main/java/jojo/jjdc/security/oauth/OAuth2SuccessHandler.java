@@ -9,7 +9,7 @@ import java.util.Map;
 import jojo.jjdc.config.AppFrontProperties;
 import jojo.jjdc.domain.member.Member;
 import jojo.jjdc.domain.member.OAuthProvider;
-import jojo.jjdc.service.member.MemberService;
+import jojo.jjdc.service.MemberService;
 import jojo.jjdc.security.oauth.service.GoogleOAuthTokenService;
 import jojo.jjdc.security.provider.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;

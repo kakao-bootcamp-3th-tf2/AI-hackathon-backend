@@ -19,16 +19,4 @@ public enum SuccessCode {
         this.code = code;
         this.message = message;
     }
-
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 }

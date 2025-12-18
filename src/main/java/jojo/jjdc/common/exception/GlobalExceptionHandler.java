@@ -14,6 +14,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<APIResponse<?>> handleBusinessException(BusinessException ex) {
         ErrorCode code = ex.getErrorCode();
         APIResponse<?> body = APIResponse.error(code, ex.getMessage());
+
         return ResponseEntity.status(code.getStatus()).body(body);
     }
 
@@ -31,6 +32,7 @@ public class GlobalExceptionHandler {
         }
         String fallbackCode = ex.getStatusCode().toString();
         String fallbackMessage = message != null ? message : fallbackCode;
+
         return ResponseEntity
                 .status(ex.getStatusCode())
                 .body(APIResponse.error(fallbackMessage, fallbackCode));
@@ -39,6 +41,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIResponse<?>> handleGenericException(Exception ex) {
         APIResponse<?> body = APIResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, ex.getMessage());
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

@@ -1,5 +1,6 @@
 package jojo.jjdc.service;
 
+import java.util.List;
 import jojo.jjdc.domain.member.Member;
 import jojo.jjdc.domain.member.MemberStatus;
 import jojo.jjdc.domain.member.OAuthProvider;
@@ -33,9 +34,9 @@ public class MemberService {
     }
 
     @Transactional
-    public Member updateStatus(Long memberId, MemberStatus status) {
+    public Member updateProfile(Long memberId, String telecom, List<String> payments) {
         Member member = getById(memberId);
-        member.updateStatus(status);
+        member.updateProfile(telecom, payments, MemberStatus.ACTIVE);
         return member;
     }
 }

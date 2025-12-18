@@ -32,3 +32,8 @@
 - 프론트가 직접 일정/혜택 내용을 넘겨 덮어쓸 수 있도록 `PUT /api/calendar/events/manual` API(`GoogleCalendarManualUpdateRequest`)를 추가하고, 해당 플로우도 Notity 저장/반환 구조로 통일함.
 - `PUT /api/calendar/events/manual` 요청 바디는 `eventId`, `startAt`, `suggest`만 받고, 종료 시각은 서버가 startAt+1분으로 자동 설정하여 Google Calendar의 start<end 요구 조건을 만족시키도록 단순화함.
 - README에 새 API/알람 동작을 반영하고, 전체 플로우가 Notity 중심으로 동작함을 문서화함.
+
+## 2025-12-19
+- 소셜 온보딩 완료를 위해 Member 엔티티에 통신사/결제수단 필드를 추가하고 문자열 리스트를 단일 컬럼으로 직렬화하는 `StringListConverter`를 도입함.
+- `MemberJoinRequest` DTO 및 `/api/members/join` 컨트롤러를 추가해 통신사와 결제 리스트를 입력받아 `updateProfile`이 상태를 ACTIVE로 변경하도록 구성함.
+- SuccessCode에 MEMBER_PROFILE_UPDATED를 추가해 회원가입 완료 응답을 공통 포맷으로 제공함.

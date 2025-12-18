@@ -1,6 +1,7 @@
 package jojo.jjdc.domain.member;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,8 +13,11 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jojo.jjdc.domain.member.converter.StringListConverter;
 
 @Getter
 @Entity
@@ -41,6 +45,13 @@ public class Member {
     @Column(nullable = false, length = 30)
     private MemberStatus status = MemberStatus.PENDING;
 
+    @Column(name = "telecom", length = 30)
+    private String telecom;
+
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "payments", columnDefinition = "text")
+    private List<String> payments = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -56,6 +67,12 @@ public class Member {
 
     public void updateEmail(String email) {
         this.email = email;
+    }
+
+    public void updateProfile(String telecom, List<String> payments, MemberStatus nextStatus) {
+        this.telecom = telecom;
+        this.payments = payments != null ? new ArrayList<>(payments) : new ArrayList<>();
+        this.status = nextStatus;
     }
 
     public void updateStatus(MemberStatus nextStatus) {

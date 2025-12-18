@@ -19,3 +19,11 @@
 - Swagger용 DTO에 필드 설명/예시를 붙여 인텔리센스에서 Request/Response 예시를 바로 확인할 수 있도록 개선함.
 - Swagger/API 응답에 `suggestList`/`content` 필드를 포함시켜 AI 추천 리스트와 Google Calendar description을 그대로 전달하도록 DTO/서비스를 조정함.
 - `PATCH /api/calendar/events/ai-note` path가 OPTIONS preflight/인증 리디렉트 없이 동작하도록 `RestTemplate`에 Apache HttpComponents를 적용하고 Spring Security의 CORS/entry-point를 튜닝해 브라우저 접근성을 확보함.
+- `PATCH /api/calendar/events/ai-note` 요청 바디를 `{"needSuggestList": [...]}` 구조로 바꿔, eventIds 리스트를 `GoogleCalendarSuggestRequest`로 감싸 보다 명시적인 형식으로 처리하면서 존재하지 않거나 파싱 실패한 일정에는 `event`를 빈 문자열로 응답함.
+- Google Calendar API 호출/토큰 갱신 책임을 `GoogleCalendarClient`로 분리하여 `GoogleCalendarService`는 AI 흐름/DTO 변환에 집중하도록 리팩토링했고, 관련 DTO/Config 주석도 보강함.
+- GoogleCalendarService 각 메서드에 역할 주석을 보강하고 `appendSuggest` 흐름을 정리했으며, `GoogleCalendarSuggestRequest`/`GoogleCalendarSuggestResponse`에 Swagger 필드 설명과 예시를 더해 API 문서 신뢰도를 높임.
+- GoogleCalendarAiDummyService라는 이름으로 AI 시뮬레이터를 명시해 실제 서비스 전까지 더미 동작임을 분명히 표기함.
+- AI 연동을 추상화하기 위해 `GoogleCalendarAiService` 인터페이스를 추가했고, `GoogleCalendarAiDummyService`가 이 인터페이스를 구현하도록 하여 향후 실 운영용 구현체 추가가 용이하도록 구성함.
+- GoogleCalendarService의 `getEvents`가 이벤트 리스트만 반환하고 컨트롤러가 `GoogleCalendarEventsResponse`를 조립하도록 조정해, 응답 생성 책임을 컨트롤러 계층으로 명확히 이동시킴.
+- 토큰 재발급 응답의 `expiresIn` 필드가 누락될 경우 NPE가 발생하던 문제를 `refreshAccessToken`에서 검증하고 명시적인 BusinessException으로 치환하도록 수정함.
+- Swagger에서 `GoogleCalendarSuggestRequest` 예시가 중첩되어 보이는 문제를 해결하기 위해 리스트 필드 예시를 `["event1","event2"]`로 바로 잡음.

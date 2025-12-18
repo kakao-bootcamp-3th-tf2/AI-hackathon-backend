@@ -7,10 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import jojo.jjdc.common.response.APIResponse;
 import jojo.jjdc.common.response.SuccessCode;
-import jojo.jjdc.googlecalendar.dto.GoogleCalendarAiAppendResponse;
-import jojo.jjdc.googlecalendar.dto.GoogleCalendarCreateEventRequest;
-import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventDto;
-import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventsResponse;
+import jojo.jjdc.googlecalendar.dto.*;
 import jojo.jjdc.security.jwt.MemberPrincipal;
 import jojo.jjdc.service.GoogleCalendarService;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +32,7 @@ public class GoogleCalendarController {
 
     @GetMapping("/events")
     @Operation(summary = "기본 캘린더 이벤트 조회", description = "연결된 구글 계정의 primary 캘린더에서 일정 목록을 조회한다.")
-    public ResponseEntity<APIResponse<GoogleCalendarEventsResponse>> primaryEvents(
+    public ResponseEntity<APIResponse<GoogleCalendarEventsResponse>> getEvents(
             @AuthenticationPrincipal MemberPrincipal principal,
 
             @Parameter(description = "조회 시작 시각(ISO-8601). 미지정 시 오늘 00:00Z", example = "2025-12-18T00:00:00Z")
@@ -44,7 +41,9 @@ public class GoogleCalendarController {
             @Parameter(description = "조회 종료 시각(ISO-8601). 미지정 시 시작 시각 + 1일", example = "2025-12-19T00:00:00Z")
             @RequestParam(value = "to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to
     ) {
-        GoogleCalendarEventsResponse response = googleCalendarService.fetchPrimaryEvents(principal, from, to);
+        List<GoogleCalendarEventDto> events = googleCalendarService.getEvents(principal, from, to);
+
+        GoogleCalendarEventsResponse response = new GoogleCalendarEventsResponse(events);
         return ResponseEntity
                 .status(SuccessCode.GOOGLE_EVENTS_FETCHED.getStatus())
                 .body(APIResponse.ok(SuccessCode.GOOGLE_EVENTS_FETCHED, response));
@@ -56,19 +55,19 @@ public class GoogleCalendarController {
             @AuthenticationPrincipal MemberPrincipal principal,
             @RequestBody GoogleCalendarCreateEventRequest request
     ) {
-        GoogleCalendarEventDto event = googleCalendarService.createCategorizedEvent(principal, request);
+        GoogleCalendarEventDto event = googleCalendarService.createEvent(principal, request);
         return ResponseEntity
                 .status(SuccessCode.GOOGLE_EVENT_CREATED.getStatus())
                 .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_CREATED, event));
     }
 
-    @PatchMapping("/events/ai-note")
+    @PatchMapping("/events/suggest")
     @Operation(summary = "여러 일정 AI 설명 추가", description = "일정 ID 목록을 받아, 카테고리/브랜드를 추출하고 AI 응답을 설명에 이어붙입니다.")
-    public ResponseEntity<APIResponse<List<GoogleCalendarAiAppendResponse>>> appendAiNote(
+    public ResponseEntity<APIResponse<List<GoogleCalendarSuggestResponse>>> appendSuggest(
             @AuthenticationPrincipal MemberPrincipal principal,
-            @RequestBody List<String> eventIds
+            @RequestBody GoogleCalendarSuggestRequest request
     ) {
-        List<GoogleCalendarAiAppendResponse> results = googleCalendarService.appendAiNotes(principal, eventIds);
+        List<GoogleCalendarSuggestResponse> results = googleCalendarService.appendSuggest(principal, request.needSuggestList());
         return ResponseEntity
                 .status(SuccessCode.GOOGLE_EVENT_UPDATED.getStatus())
                 .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_UPDATED, results));

@@ -70,6 +70,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         Map<String, Object> payload = Map.of(
             "accessToken", accessToken,
+            "memberId", member.getId(),
             "status", member.getStatus().name(),
             "redirectUri", appFrontProperties.getRedirectUri()
         );
@@ -80,6 +81,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private String buildRedirectUri(String accessToken, Member member) {
         String fragment = UriComponentsBuilder.newInstance()
                 .queryParam("accessToken", accessToken)
+                .queryParam("memberId", member.getId())
                 .queryParam("status", member.getStatus().name())
                 .build()
                 .encode()

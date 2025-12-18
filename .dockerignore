@@ -1,5 +1,7 @@
 # Build output
+# keep jar so runtime-only Dockerfile can copy it
 build/
+!build/libs/*.jar
 out/
 target/
 

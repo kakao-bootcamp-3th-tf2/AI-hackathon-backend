@@ -17,3 +17,5 @@
 - 기존 일정의 설명을 AI 응답으로 이어붙이는 PATCH `/api/calendar/events/ai-note`를 추가하고 관련 SuccessCode/DTO/API 문서를 확대함; 요청은 일정 ID 리스트만 받아 요약 정보를 파싱하고 실패한 일정은 `null`로, 성공한 일정은 `GoogleCalendarEventDto`로 반환하도록 조정. `GoogleCalendarEventDto`에 `suggestList`를 추가해 AI가 전달한 혜택 후보를 그대로 응답에 담도록 개선함.
 - AI 서버 응답 `{message, code, data}` 스펙을 도입하고, `data` 상태(널/빈/값)에 따라 사용자 친화적인 설명을 생성해 일정 본문/AI note 생성에 반영함.
 - Swagger용 DTO에 필드 설명/예시를 붙여 인텔리센스에서 Request/Response 예시를 바로 확인할 수 있도록 개선함.
+- Swagger/API 응답에 `suggestList`/`content` 필드를 포함시켜 AI 추천 리스트와 Google Calendar description을 그대로 전달하도록 DTO/서비스를 조정함.
+- `PATCH /api/calendar/events/ai-note` path가 OPTIONS preflight/인증 리디렉트 없이 동작하도록 `RestTemplate`에 Apache HttpComponents를 적용하고 Spring Security의 CORS/entry-point를 튜닝해 브라우저 접근성을 확보함.

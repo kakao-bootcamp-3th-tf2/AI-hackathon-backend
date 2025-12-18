@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: jjdc
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/jjdc}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+              - https://www.googleapis.com/auth/calendar
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+  config:
+    import: optional:application-secret.yaml
+
+jwt:
+  access:
+    secret: ${JWT_ACCESS_SECRET:change-me-access}
+    ttl: PT30M
+  refresh:
+    secret: ${JWT_REFRESH_SECRET:change-me-refresh}
+    ttl: P14D
+
+app:
+  front:
+    redirect-uri: ${FRONT_REDIRECT_URI:http://localhost:8080/demo/oauth2-redirect.html}

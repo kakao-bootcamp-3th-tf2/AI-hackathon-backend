@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>JJDC OAuth2 Demo</title>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; }
+        .card { max-width: 480px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        button { padding: 0.75rem 1.25rem; font-size: 1rem; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        code { background: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Google 로그인 연동 데모</h1>
+    <p>아직 FE가 없을 때, 백엔드만으로 OAuth2 로그인과 JWT 발급 흐름을 검증하는 테스트용 페이지입니다.</p>
+    <ol>
+        <li>아래 버튼으로 Google 로그인 플로우를 시작합니다.</li>
+        <li>동의 후 <code>demo/oauth2-redirect.html</code>로 돌아오면 Access Token·회원 상태를 확인할 수 있습니다.</li>
+        <li>복사한 Access Token을 Swagger Authorize에 붙여 보호 API를 호출합니다.</li>
+    </ol>
+    <button onclick="window.location.href='/oauth2/authorization/google'">Google 로그인 시작</button>
+</div>
+</body>
+</html>

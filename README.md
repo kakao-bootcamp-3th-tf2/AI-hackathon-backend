@@ -38,7 +38,9 @@
    - Authorization 헤더에 `Bearer {서비스 Access Token}`을 넣고 호출.
    - `from`/`to`를 생략하면 기본값은 “오늘 00:00Z”부터 “+1일” 구간으로 처리된다.
 6. 사용자 계정에서 `"JJDC"`라는 캘린더만을 대상으로 동작하며, 존재하지 않으면 자동 생성한다.
-7. 일정 등록: `POST /api/calendar/events`로 `category`, `brand`, `startAt`, `endAt`을 JSON 본문으로 보내면 "#카테고리#브랜드" 제목의 일정이 AI 혜택 설명과 함께 생성된다.
+7. 일정 등록: `POST /api/calendar/events`로 `category`, `brand`, `startAt`, `endAt`을 JSON 본문으로 보내면 "#카테고리#브랜드" 제목의 일정이 AI 혜택 설명(+`suggestList`)과 함께 생성된다.
+8. AI 설명 추가: `PATCH /api/calendar/events/ai-note`로 일정 ID 목록을 JSON 배열로 보내면, 각 이벤트 제목에서 카테고리/브랜드를 파싱해 AI 응답을 기존 설명 뒤에 이어붙입니다 (파싱 실패한 일정은 `event`이 `null`로 반환됨).
+9. AI 응답 스펙: AI 서버는 `{ "message", "code", "data" }` 구조로 응답하며, `data`가 `null`이면 오류, 빈 리스트면 혜택 없음, 값이 있으면 `{suggest, fromDate, toDate}` 항목을 사용자 친화적인 텍스트로 캘린더 설명에 포함시킨다.
 
 > 자세한 Google Calendar API 호출 정보는 `docs/GOOGLE_CALENDAR_API.md` 참고.
 

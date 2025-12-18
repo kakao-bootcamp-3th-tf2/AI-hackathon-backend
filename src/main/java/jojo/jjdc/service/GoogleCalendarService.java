@@ -5,16 +5,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import jojo.jjdc.common.exception.BusinessException;
 import jojo.jjdc.common.exception.ErrorCode;
+import jojo.jjdc.googlecalendar.ai.AiServerResponse.AiSuggestion;
 import jojo.jjdc.googlecalendar.ai.GoogleCalendarAiResponse;
 import jojo.jjdc.googlecalendar.ai.GoogleCalendarAiService;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarAiAppendResponse;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarAiSuggestion;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarAppendRequest;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarCreateEventRequest;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventDto;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventsResponse;
@@ -75,7 +83,64 @@ public class GoogleCalendarService {
         String accessToken = ensureAccessToken(token);
         String calendarId = ensureJjdcCalendarId(accessToken);
         GoogleCalendarEventInsertRequest insertRequest = buildEventInsertRequest(request, aiResponse);
-        return insertEvent(accessToken, calendarId, insertRequest);
+        GoogleCalendarCreatedEventResponse created = insertEvent(accessToken, calendarId, insertRequest);
+        return toDtoFromCreated(created, toAiSuggestions(aiResponse));
+    }
+
+    /**
+     * 여러 일정 ID를 받아 간단한 요약(카테고리/브랜드) 정보를 AI에 보내고, 설명을 이어붙인 결과를 반환.
+     */
+    public List<GoogleCalendarAiAppendResponse> appendAiNotes(MemberPrincipal principal, List<String> eventIds) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return List.of();
+        }
+        Long memberId = resolveMemberId(principal);
+        GoogleOAuthToken token = googleOAuthTokenService.getByMemberId(memberId);
+        String accessToken = ensureAccessToken(token);
+        String calendarId = ensureJjdcCalendarId(accessToken);
+        List<GoogleCalendarAiAppendResponse> responses = new ArrayList<>();
+        for (String eventId : eventIds) {
+            responses.add(processAppend(accessToken, calendarId, eventId, principal));
+        }
+        return responses;
+    }
+
+    private GoogleCalendarAiAppendResponse processAppend(String accessToken, String calendarId, String eventId, MemberPrincipal principal) {
+        GoogleCalendarEventDetailResponse detail = fetchEventDetail(accessToken, calendarId, eventId);
+        Optional<GoogleCalendarAppendRequest> parsed = parseSummary(detail.summary());
+        if (parsed.isEmpty()) {
+            return new GoogleCalendarAiAppendResponse(eventId, null);
+        }
+        GoogleCalendarAppendRequest appendRequest = parsed.get();
+        OffsetDateTime start = toOffset(detail.start());
+        OffsetDateTime end = toOffset(detail.end());
+        GoogleCalendarAiResponse aiResponse = googleCalendarAiService.requestAppendAiResult(
+                eventId,
+                detail.summary(),
+                start,
+                end,
+                appendRequest,
+                principal
+        );
+        String mergedDescription = mergeDescriptions(detail.description(), aiResponse.benefitDescription());
+        GoogleCalendarCreatedEventResponse patched = patchEventDescription(accessToken, calendarId, eventId, mergedDescription);
+        return new GoogleCalendarAiAppendResponse(eventId, toDtoFromCreated(patched, toAiSuggestions(aiResponse)));
+    }
+
+    private Optional<GoogleCalendarAppendRequest> parseSummary(String summary) {
+        if (summary == null || summary.isBlank()) {
+            return Optional.empty();
+        }
+        String[] tokens = summary.split("#");
+        if (tokens.length < 3) {
+            return Optional.empty();
+        }
+        String category = tokens[1].trim();
+        String brand = tokens[2].trim();
+        if (category.isEmpty() || brand.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new GoogleCalendarAppendRequest(category, brand));
     }
 
     /**
@@ -130,6 +195,60 @@ public class GoogleCalendarService {
     }
 
     /**
+     * 단일 일정 정보를 조회한다.
+     */
+    private GoogleCalendarEventDetailResponse fetchEventDetail(String accessToken, String calendarId, String eventId) {
+        String url = CALENDAR_BASE_URL + "/calendars/{calendarId}/events/{eventId}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        ResponseEntity<GoogleCalendarEventDetailResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    GoogleCalendarEventDetailResponse.class,
+                    calendarId,
+                    eventId
+            );
+        } catch (RestClientException ex) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, ex.getMessage());
+        }
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "일정 조회 실패");
+        }
+        return response.getBody();
+    }
+
+    /**
+     * 일정 본문을 새로운 설명으로 업데이트한다.
+     */
+    private GoogleCalendarCreatedEventResponse patchEventDescription(String accessToken, String calendarId, String eventId, String description) {
+        String url = CALENDAR_BASE_URL + "/calendars/{calendarId}/events/{eventId}";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        GoogleCalendarPatchRequest patchRequest = new GoogleCalendarPatchRequest(description);
+        ResponseEntity<GoogleCalendarCreatedEventResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PATCH,
+                    new HttpEntity<>(patchRequest, headers),
+                    GoogleCalendarCreatedEventResponse.class,
+                    calendarId,
+                    eventId
+            );
+        } catch (RestClientException ex) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, ex.getMessage());
+        }
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "일정 업데이트 실패");
+        }
+        return response.getBody();
+    }
+
+    /**
      * 외부 API 응답을 도메인 DTO 목록으로 전환한다.
      */
     private List<GoogleCalendarEventDto> toDtoList(GoogleEventsResponse response) {
@@ -153,7 +272,14 @@ public class GoogleCalendarService {
                 item.summary(),
                 start,
                 end
+                ,
+                List.of()
         );
+    }
+
+    private OffsetDateTime toOffset(GoogleEventTime time) {
+        Instant instant = time != null ? time.instant() : Instant.now();
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     /**
@@ -214,7 +340,7 @@ public class GoogleCalendarService {
     /**
      * 실제 Google Calendar API에 이벤트 등록 요청을 보낸다.
      */
-    private GoogleCalendarEventDto insertEvent(String accessToken, String calendarId, GoogleCalendarEventInsertRequest request) {
+    private GoogleCalendarCreatedEventResponse insertEvent(String accessToken, String calendarId, GoogleCalendarEventInsertRequest request) {
         String url = CALENDAR_BASE_URL + "/calendars/{calendarId}/events";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -234,16 +360,26 @@ public class GoogleCalendarService {
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "응답 코드: " + response.getStatusCode());
         }
-        return toDtoFromCreated(response.getBody());
+        return response.getBody();
     }
 
     /**
      * 생성 결과를 DTO로 변환한다.
      */
-    private GoogleCalendarEventDto toDtoFromCreated(GoogleCalendarCreatedEventResponse response) {
+    private GoogleCalendarEventDto toDtoFromCreated(GoogleCalendarCreatedEventResponse response, List<GoogleCalendarAiSuggestion> suggestList) {
         Instant start = response.start() != null ? response.start().instant() : fallbackStart();
         Instant end = response.end() != null ? response.end().instant() : start;
-        return new GoogleCalendarEventDto(response.id(), response.summary(), start, end);
+        return new GoogleCalendarEventDto(response.id(), response.summary(), start, end, suggestList != null ? suggestList : List.of());
+    }
+
+    /**
+     * 기존 설명 문자열 뒤에 AI 응답을 이어붙인다.
+     */
+    private String mergeDescriptions(String existing, String aiResult) {
+        if (existing == null || existing.isBlank()) {
+            return aiResult;
+        }
+        return existing + "\n\n" + aiResult;
     }
 
     /**
@@ -396,12 +532,51 @@ public class GoogleCalendarService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record GoogleCalendarCreatedEventResponse(String id, String summary, GoogleEventTime start, GoogleEventTime end) {
+    private record GoogleCalendarCreatedEventResponse(String id, String summary, String description, GoogleEventTime start, GoogleEventTime end) {
     }
 
     private record GoogleCalendarEventInsertRequest(String summary, String description, GoogleEventDateTime start, GoogleEventDateTime end) {
     }
 
     private record GoogleEventDateTime(OffsetDateTime dateTime) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record GoogleCalendarEventDetailResponse(String id, String summary, String description, GoogleEventTime start, GoogleEventTime end) {
+    }
+
+    private record GoogleCalendarPatchRequest(String description) {
+    }
+
+    private List<GoogleCalendarAiSuggestion> toAiSuggestions(GoogleCalendarAiResponse aiResponse) {
+        if (aiResponse == null || aiResponse.suggestions() == null) {
+            return List.of();
+        }
+        return aiResponse.suggestions().stream()
+                .map(this::toAiSuggestion)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private GoogleCalendarAiSuggestion toAiSuggestion(AiSuggestion suggestion) {
+        if (suggestion == null) {
+            return null;
+        }
+        return new GoogleCalendarAiSuggestion(
+                suggestion.suggest(),
+                parseOffset(suggestion.fromDate()),
+                parseOffset(suggestion.toDate())
+        );
+    }
+
+    private OffsetDateTime parseOffset(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(text);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
     }
 }

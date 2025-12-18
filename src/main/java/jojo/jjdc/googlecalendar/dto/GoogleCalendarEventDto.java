@@ -2,6 +2,7 @@ package jojo.jjdc.googlecalendar.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
 
 public record GoogleCalendarEventDto(
 
@@ -15,5 +16,8 @@ public record GoogleCalendarEventDto(
         Instant start,
 
         @Schema(description = "이벤트 종료 시각(UTC, ISO-8601)", example = "2025-12-20T11:00:00Z")
-        Instant end
+        Instant end,
+
+        @Schema(description = "AI가 추천한 혜택 리스트")
+        List<GoogleCalendarAiSuggestion> suggestList
 ) { }

@@ -38,3 +38,4 @@
 - 소셜 온보딩 완료를 위해 Member 엔티티에 통신사/결제수단 필드를 추가하고 문자열 리스트를 단일 컬럼으로 직렬화하는 `StringListConverter`를 도입함.
 - `MemberJoinRequest` DTO 및 `/api/members/join` 컨트롤러를 추가해 통신사와 결제 리스트를 입력받아 `updateProfile`이 상태를 ACTIVE로 변경하도록 구성함.
 - SuccessCode에 MEMBER_PROFILE_UPDATED를 추가해 회원가입 완료 응답을 공통 포맷으로 제공함.
+- OAuth2 성공 시 리다이렉트 URI와 JSON 페이로드에 `memberId`를 포함해 프론트가 사용자 식별자를 즉시 확보하도록 수정함.

@@ -7,9 +7,12 @@ import org.springframework.http.HttpStatus;
 public enum SuccessCode {
     AUTH_STATUS_FETCHED(HttpStatus.OK, "AUTH_200", "로그인 상태 조회에 성공했습니다."),
     AUTH_TOKEN_REFRESHED(HttpStatus.OK, "AUTH_201", "Access/Refresh Token을 재발급했습니다."),
+    MEMBER_PROFILE_UPDATED(HttpStatus.OK, "MEMBER_200", "회원 프로필을 갱신했습니다."),
     GOOGLE_EVENTS_FETCHED(HttpStatus.OK, "GOOGLE_200", "구글 캘린더 이벤트 조회에 성공했습니다."),
     GOOGLE_EVENT_CREATED(HttpStatus.CREATED, "GOOGLE_201", "구글 캘린더 이벤트를 등록했습니다."),
     GOOGLE_EVENT_UPDATED(HttpStatus.OK, "GOOGLE_202", "구글 캘린더 이벤트를 업데이트했습니다."),
+    NOTITY_FETCHED(HttpStatus.OK, "NOTITY_200", "알람 목록을 조회했습니다."),
+    NOTITY_DELETED(HttpStatus.OK, "NOTITY_201", "알람을 삭제했습니다."),
     HEALTH_CHECK(HttpStatus.OK, "HEALTH_200", "서비스가 정상적으로 동작 중입니다.");
 
     private final HttpStatus status;

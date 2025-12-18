@@ -271,9 +271,9 @@ public class GoogleCalendarService {
                 item.id(),
                 item.summary(),
                 start,
-                end
-                ,
-                List.of()
+                end,
+                List.of(),
+                item.description()
         );
     }
 
@@ -369,7 +369,7 @@ public class GoogleCalendarService {
     private GoogleCalendarEventDto toDtoFromCreated(GoogleCalendarCreatedEventResponse response, List<GoogleCalendarAiSuggestion> suggestList) {
         Instant start = response.start() != null ? response.start().instant() : fallbackStart();
         Instant end = response.end() != null ? response.end().instant() : start;
-        return new GoogleCalendarEventDto(response.id(), response.summary(), start, end, suggestList != null ? suggestList : List.of());
+        return new GoogleCalendarEventDto(response.id(), response.summary(), start, end, suggestList != null ? suggestList : List.of(), response.description());
     }
 
     /**
@@ -502,7 +502,7 @@ public class GoogleCalendarService {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record GoogleEventItem(String id, String summary, GoogleEventTime start, GoogleEventTime end) {
+    private record GoogleEventItem(String id, String summary, GoogleEventTime start, GoogleEventTime end, String description) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

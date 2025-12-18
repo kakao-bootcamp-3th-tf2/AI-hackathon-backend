@@ -1,30 +1,17 @@
 package jojo.jjdc.security.oauth;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import jojo.jjdc.common.exception.BusinessException;
+import jojo.jjdc.common.exception.ErrorCode;
 
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+public record GoogleOAuth2User(String email, String providerId) {
 
-import lombok.Getter;
-
-@Getter
-public class GoogleOAuth2User implements OAuth2User {
-	private String email;
-
-	@Override
-	public Map<String, Object> getAttributes() {
-		return Map.of();
-	}
-
-	@Override
-	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return List.of();
-	}
-
-	@Override
-	public String getName() {
-		return "";
-	}
+    public static GoogleOAuth2User fromAttributes(Map<String, Object> attributes) {
+        String email = (String) attributes.get("email");
+        String sub = (String) attributes.get("sub");
+        if (email == null || sub == null) {
+            throw new BusinessException(ErrorCode.OAUTH_CLIENT_NOT_FOUND, "구글 프로필 정보 부족");
+        }
+        return new GoogleOAuth2User(email, sub);
+    }
 }

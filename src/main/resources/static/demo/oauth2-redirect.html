@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>JJDC OAuth2 Redirect</title>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; }
+        .card { max-width: 520px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        textarea { width: 100%; min-height: 120px; padding: 0.75rem; font-family: monospace; border-radius: 8px; border: 1px solid #d1d5db; }
+        button { margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .status { font-weight: bold; color: #16a34a; }
+        .error { color: #dc2626; }
+        code { background: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+        .link { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>로그인 성공</h1>
+    <p id="statusMessage">JWT를 복사해 Swagger에서 사용하세요.</p>
+    <label for="tokenBox">Access Token</label>
+    <textarea id="tokenBox" readonly></textarea>
+    <button onclick="copyToken()">토큰 복사</button>
+    <div class="link">
+        <a href="/demo/index.html">다시 로그인하기</a>
+    </div>
+</div>
+<script>
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const token = params.get('accessToken');
+    const status = params.get('status');
+    const box = document.getElementById('tokenBox');
+    const statusMessage = document.getElementById('statusMessage');
+
+    if (token) {
+        box.value = token;
+        statusMessage.innerHTML = `회원 상태: <span class="status">${status ?? 'UNKNOWN'}</span>`;
+    } else {
+        box.value = '토큰 정보를 찾지 못했습니다. Google 로그인부터 다시 시도하세요.';
+        statusMessage.classList.add('error');
+        statusMessage.textContent = '토큰 정보가 전달되지 않았습니다.';
+    }
+
+    function copyToken() {
+        if (!token) {
+            return;
+        }
+        navigator.clipboard.writeText(token).then(() => {
+            alert('Access Token이 복사되었습니다.');
+        }).catch(() => {
+            alert('복사에 실패했습니다. 수동으로 복사해 주세요.');
+        });
+    }
+</script>
+</body>
+</html>

@@ -20,8 +20,11 @@ import jojo.jjdc.googlecalendar.client.GoogleCalendarClient;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarCreateEventRequest;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventDto;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarAppendRequest;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarManualUpdateRequest;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarSuggestResponse;
 import jojo.jjdc.googlecalendar.dto.SuggestDto;
+import jojo.jjdc.notity.dto.NotityDto;
+import jojo.jjdc.notity.service.NotityService;
 import jojo.jjdc.security.jwt.MemberPrincipal;
 import jojo.jjdc.security.oauth.entity.GoogleOAuthToken;
 import jojo.jjdc.security.oauth.service.GoogleOAuthTokenService;
@@ -39,6 +42,7 @@ public class GoogleCalendarService {
     private final GoogleOAuthTokenService googleOAuthTokenService;
     private final GoogleCalendarAiService googleCalendarAiService;
     private final GoogleCalendarClient googleCalendarClient;
+    private final NotityService notityService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
@@ -59,9 +63,9 @@ public class GoogleCalendarService {
     }
 
     /**
-     * 카테고리/브랜드/기간 정보를 받아 AI 보조 설명을 포함한 캘린더 일정을 등록한다.
+     * 카테고리/브랜드/기간 정보를 받아 AI 보조 설명을 포함한 캘린더 일정을 등록하고, 알람 정보를 저장한다.
      */
-    public GoogleCalendarEventDto createEvent(MemberPrincipal principal, GoogleCalendarCreateEventRequest request) {
+    public NotityDto createEvent(MemberPrincipal principal, GoogleCalendarCreateEventRequest request) {
         Long memberId = resolveMemberId(principal);
         GoogleCalendarAiResponse aiResponse = googleCalendarAiService.requestAiResult(request, principal);
         GoogleOAuthToken token = googleOAuthTokenService.getByMemberId(memberId);
@@ -69,7 +73,8 @@ public class GoogleCalendarService {
         String calendarId = ensureJjdcCalendarId(accessToken);
         GoogleCalendarClient.GoogleCalendarEventInsertRequest insertRequest = buildEventInsertRequest(request, aiResponse);
         GoogleCalendarClient.GoogleCalendarCreatedEventResponse created = googleCalendarClient.insertEvent(accessToken, calendarId, insertRequest);
-        return toDtoFromCreated(created, toAiSuggestions(aiResponse));
+        GoogleCalendarEventDto dto = toDtoFromCreated(created, toAiSuggestions(aiResponse));
+        return registerNotity(memberId, dto);
     }
 
     /**
@@ -85,7 +90,7 @@ public class GoogleCalendarService {
         String calendarId = ensureJjdcCalendarId(accessToken);
         List<GoogleCalendarSuggestResponse> responses = new ArrayList<>();
         for (String eventId : eventIds) {
-            responses.add(processAppend(accessToken, calendarId, eventId, principal));
+            responses.add(processAppend(memberId, accessToken, calendarId, eventId, principal));
         }
         return responses;
     }
@@ -93,16 +98,16 @@ public class GoogleCalendarService {
     /**
      * 단일 일정에 대해 AI 설명을 붙이고, 결과를 반환한다.
      */
-    private GoogleCalendarSuggestResponse processAppend(String accessToken, String calendarId, String eventId, MemberPrincipal principal) {
+    private GoogleCalendarSuggestResponse processAppend(Long memberId, String accessToken, String calendarId, String eventId, MemberPrincipal principal) {
         GoogleCalendarClient.GoogleCalendarEventDetailResponse detail;
         try {
             detail = googleCalendarClient.fetchEventDetail(accessToken, calendarId, eventId);
         } catch (BusinessException ex) {
-            return new GoogleCalendarSuggestResponse(eventId, "");
+            return new GoogleCalendarSuggestResponse(eventId, null);
         }
         Optional<GoogleCalendarAppendRequest> parsed = parseSummary(detail.summary());
         if (parsed.isEmpty()) {
-            return new GoogleCalendarSuggestResponse(eventId, "");
+            return new GoogleCalendarSuggestResponse(eventId, null);
         }
         GoogleCalendarAppendRequest appendRequest = parsed.get();
         OffsetDateTime start = toOffset(detail.start());
@@ -115,11 +120,56 @@ public class GoogleCalendarService {
                 appendRequest,
                 principal
         );
-        String mergedDescription = mergeDescriptions(detail.description(), aiResponse.benefitDescription());
+        String overwrittenDescription = aiResponse.benefitDescription();
+        GoogleCalendarClient.GoogleCalendarEventPatchRequest patchRequest =
+                new GoogleCalendarClient.GoogleCalendarEventPatchRequest(
+                        detail.summary(),
+                        overwrittenDescription,
+                        new GoogleCalendarClient.GoogleEventDateTime(start.toInstant(), "UTC", null),
+                        new GoogleCalendarClient.GoogleEventDateTime(end.toInstant(), "UTC", null)
+                );
         GoogleCalendarClient.GoogleCalendarCreatedEventResponse patched =
-                googleCalendarClient.patchEvent(accessToken, calendarId, eventId, mergedDescription);
+                googleCalendarClient.patchEvent(accessToken, calendarId, eventId, patchRequest);
         List<SuggestDto> suggestions = appendRequest.needSuggestList() ? toAiSuggestions(aiResponse) : List.of();
-        return new GoogleCalendarSuggestResponse(eventId, toDtoFromCreated(patched, suggestions));
+        GoogleCalendarEventDto eventDto = toDtoFromCreated(patched, suggestions);
+        NotityDto notity = registerNotity(memberId, eventDto);
+        return new GoogleCalendarSuggestResponse(eventId, notity);
+    }
+
+    /**
+     * 프론트에서 전달한 일정/혜택 정보를 그대로 덮어써서 구글 캘린더와 알람을 갱신한다.
+     */
+    public NotityDto overwriteEvent(MemberPrincipal principal, GoogleCalendarManualUpdateRequest request) {
+        Long memberId = resolveMemberId(principal);
+        if (request.eventId() == null || request.eventId().isBlank()) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "eventId는 필수입니다.");
+        }
+        if (request.startAt() == null) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "startAt은 필수입니다.");
+        }
+        OffsetDateTime start = request.startAt();
+        OffsetDateTime end = ensureEndAfterStart(start, null);
+        List<SuggestDto> suggestions = describeSuggestAsSingle(request.suggest());
+        String description = describeManualContent(request.suggest(), suggestions);
+
+        GoogleOAuthToken token = googleOAuthTokenService.getByMemberId(memberId);
+        String accessToken = ensureAccessToken(token);
+        String calendarId = ensureJjdcCalendarId(accessToken);
+        GoogleCalendarClient.GoogleCalendarEventDetailResponse original =
+                googleCalendarClient.fetchEventDetail(accessToken, calendarId, request.eventId());
+
+        GoogleCalendarClient.GoogleCalendarEventPatchRequest patchRequest =
+                new GoogleCalendarClient.GoogleCalendarEventPatchRequest(
+                        original.summary(),
+                        description,
+                        new GoogleCalendarClient.GoogleEventDateTime(start.toInstant(), "UTC", null),
+                        new GoogleCalendarClient.GoogleEventDateTime(end.toInstant(), "UTC", null)
+                );
+        GoogleCalendarClient.GoogleCalendarCreatedEventResponse patched =
+                googleCalendarClient.patchEvent(accessToken, calendarId, request.eventId(), patchRequest);
+
+        GoogleCalendarEventDto eventDto = toDtoFromCreated(patched, suggestions);
+        return registerNotity(memberId, eventDto);
     }
 
     /**
@@ -160,6 +210,18 @@ public class GoogleCalendarService {
                 end,
                 List.of(),
                 item.description()
+        );
+    }
+
+    private NotityDto registerNotity(Long memberId, GoogleCalendarEventDto eventDto) {
+        return notityService.upsert(
+                memberId,
+                eventDto.id(),
+                eventDto.startAt(),
+                eventDto.endAt(),
+                eventDto.summary(),
+                eventDto.content(),
+                eventDto.suggestList()
         );
     }
 
@@ -212,8 +274,8 @@ public class GoogleCalendarService {
         return new GoogleCalendarClient.GoogleCalendarEventInsertRequest(
                 summary,
                 description,
-                new GoogleCalendarClient.GoogleEventDateTime(start),
-                new GoogleCalendarClient.GoogleEventDateTime(end)
+                new GoogleCalendarClient.GoogleEventDateTime(start.toInstant(), "UTC", null),
+                new GoogleCalendarClient.GoogleEventDateTime(end.toInstant(), "UTC", null)
         );
     }
 
@@ -264,11 +326,30 @@ public class GoogleCalendarService {
         return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
-    private String mergeDescriptions(String existing, String aiResult) {
-        if (existing == null || existing.isBlank()) {
-            return aiResult;
+    private String describeManualContent(String content, List<SuggestDto> suggestions) {
+        StringBuilder builder = new StringBuilder();
+        if (content != null && !content.isBlank()) {
+            builder.append(content.trim());
         }
-        return existing + "\n\n" + aiResult;
+        if (!suggestions.isEmpty()) {
+            if (builder.length() > 0) {
+                builder.append("\n\n");
+            }
+            builder.append("혜택 제안:\n");
+            for (int i = 0; i < suggestions.size(); i++) {
+                SuggestDto suggestion = suggestions.get(i);
+                builder.append(i + 1).append(". ").append(suggestion.suggest());
+                if (suggestion.startAt() != null || suggestion.endAt() != null) {
+                    builder.append(" (")
+                            .append(suggestion.startAt() != null ? suggestion.startAt() : "-")
+                            .append(" ~ ")
+                            .append(suggestion.endAt() != null ? suggestion.endAt() : "-")
+                            .append(")");
+                }
+                builder.append("\n");
+            }
+        }
+        return builder.toString();
     }
 
     private Instant fallbackStart() {
@@ -294,6 +375,21 @@ public class GoogleCalendarService {
                 parseOffset(suggestion.fromDate()),
                 parseOffset(suggestion.toDate())
         );
+    }
+
+    private List<SuggestDto> describeSuggestAsSingle(String suggest) {
+        if (suggest == null || suggest.isBlank()) {
+            return List.of();
+        }
+        return List.of(new SuggestDto(suggest.trim(), null, null));
+    }
+
+    private OffsetDateTime ensureEndAfterStart(OffsetDateTime start, OffsetDateTime requestedEnd) {
+        OffsetDateTime end = requestedEnd != null ? requestedEnd : start.plusMinutes(1);
+        if (!end.isAfter(start)) {
+            return start.plusMinutes(1);
+        }
+        return end;
     }
 
     private OffsetDateTime parseOffset(String text) {

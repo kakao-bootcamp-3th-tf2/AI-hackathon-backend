@@ -27,3 +27,8 @@
 - GoogleCalendarService의 `getEvents`가 이벤트 리스트만 반환하고 컨트롤러가 `GoogleCalendarEventsResponse`를 조립하도록 조정해, 응답 생성 책임을 컨트롤러 계층으로 명확히 이동시킴.
 - 토큰 재발급 응답의 `expiresIn` 필드가 누락될 경우 NPE가 발생하던 문제를 `refreshAccessToken`에서 검증하고 명시적인 BusinessException으로 치환하도록 수정함.
 - Swagger에서 `GoogleCalendarSuggestRequest` 예시가 중첩되어 보이는 문제를 해결하기 위해 리스트 필드 예시를 `["event1","event2"]`로 바로 잡음.
+- Notity(알람) 도메인을 신설해 JPA 엔티티/리포지토리/서비스/컨트롤러를 추가하고, 사용자별 알람 조회(`GET /api/calendar/notities`)·삭제(`DELETE /api/calendar/notities/{id}`) API를 제공함.
+- GoogleCalendarService는 일정을 생성하거나 AI 설명을 덧붙일 때 Description을 이어쓰기 대신 덮어쓰고, 같은 시점에 Notity를 upsert하여 `createEvent`/`appendSuggest` 응답이 알람 정보를 반환하도록 수정함. `appendSuggest`는 Google API PATCH 시 start/end/summary를 모두 포함해 400 오류를 예방.
+- 프론트가 직접 일정/혜택 내용을 넘겨 덮어쓸 수 있도록 `PUT /api/calendar/events/manual` API(`GoogleCalendarManualUpdateRequest`)를 추가하고, 해당 플로우도 Notity 저장/반환 구조로 통일함.
+- `PUT /api/calendar/events/manual` 요청 바디는 `eventId`, `startAt`, `suggest`만 받고, 종료 시각은 서버가 startAt+1분으로 자동 설정하여 Google Calendar의 start<end 요구 조건을 만족시키도록 단순화함.
+- README에 새 API/알람 동작을 반영하고, 전체 플로우가 Notity 중심으로 동작함을 문서화함.

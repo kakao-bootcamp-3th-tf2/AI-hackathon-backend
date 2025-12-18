@@ -38,9 +38,11 @@
    - Authorization 헤더에 `Bearer {서비스 Access Token}`을 넣고 호출.
    - `from`/`to`를 생략하면 기본값은 “오늘 00:00Z”부터 “+1일” 구간으로 처리된다.
 6. 사용자 계정에서 `"JJDC"`라는 캘린더만을 대상으로 동작하며, 존재하지 않으면 자동 생성한다.
-7. 일정 등록: `POST /api/calendar/events`로 `category`, `brand`, `startAt`, `endAt`을 JSON 본문으로 보내면 "#카테고리#브랜드" 제목의 일정이 AI 혜택 설명(+`suggestList`)과 함께 생성된다.
-8. AI 설명 추가: `PATCH /api/calendar/events/ai-note`로 `GoogleCalendarSuggestRequest` 형태의 `{"needSuggestList":["eventId1","eventId2"]}`를 보내면, 각 이벤트 제목에서 카테고리/브랜드를 파싱해 AI 응답을 기존 설명 뒤에 이어붙입니다. 존재하지 않거나 요약 파싱에 실패한 일정은 응답의 `event` 필드를 빈 문자열(`""`)로 돌려주며, 나머지는 `GoogleCalendarEventDto`로 반환됩니다.
-9. AI 응답 스펙: AI 서버는 `{ "message", "code", "data" }` 구조로 응답하며, `data`가 `null`이면 오류, 빈 리스트면 혜택 없음, 값이 있으면 `{suggest, fromDate, toDate}` 항목을 사용자 친화적인 텍스트로 캘린더 설명에 포함시킨다.
+7. 일정 등록: `POST /api/calendar/events`로 `category`, `brand`, `startAt`, `endAt`을 JSON 본문으로 보내면 "#카테고리#브랜드" 제목의 일정이 AI 혜택 설명(+`suggestList`)과 함께 생성되고, 동일한 정보가 알람 엔티티(Notity)로 저장되어 응답 본문에 담긴다.
+8. AI 설명 추가: `PATCH /api/calendar/events/suggest`로 `{"needSuggestList":["eventId1","eventId2"]}` 형태를 보내면 각 이벤트 제목에서 카테고리/브랜드를 파싱해 AI 응답으로 일정 내용을 덮어쓰고, 성공한 건마다 Notity 정보(`eventId`, `summary`, `content`, `suggestList` 등)를 반환한다. 실패한 일정은 `notity = null`로 응답된다.
+9. 수동 덮어쓰기: `PUT /api/calendar/events/manual`은 `eventId`, `startAt`, `suggest`만 받아 일정 시간을 `startAt ~ (startAt+1분)`으로 자동 설정하고 설명을 `suggest`로 덮어쓴 뒤 동일 내용을 Notity로 저장해 반환한다.
+10. 알람 조회/삭제: `GET /api/calendar/notities`로 사용자의 모든 알람을 조회하고 `DELETE /api/calendar/notities/{id}`로 단일 알람을 제거할 수 있다.
+11. AI 응답 스펙: AI 서버는 `{ "message", "code", "data" }` 구조로 응답하며, `data`가 `null`이면 오류, 빈 리스트면 혜택 없음, 값이 있으면 `{suggest, fromDate, toDate}` 항목을 사용자 친화적인 텍스트로 캘린더 설명에 포함시킨다.
 
 > 자세한 Google Calendar API 호출 정보는 `docs/GOOGLE_CALENDAR_API.md` 참고.
 

@@ -7,7 +7,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import jojo.jjdc.common.response.APIResponse;
 import jojo.jjdc.common.response.SuccessCode;
-import jojo.jjdc.googlecalendar.dto.*;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarCreateEventRequest;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventDto;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventsResponse;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarManualUpdateRequest;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarSuggestRequest;
+import jojo.jjdc.googlecalendar.dto.GoogleCalendarSuggestResponse;
+import jojo.jjdc.notity.dto.NotityDto;
 import jojo.jjdc.security.jwt.MemberPrincipal;
 import jojo.jjdc.service.GoogleCalendarService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,19 +57,19 @@ public class GoogleCalendarController {
     }
 
     @PostMapping("/events")
-    @Operation(summary = "JJDC 캘린더 일정 등록", description = "카테고리/브랜드/기간에 맞춰 AI 추천 혜택을 포함한 일정을 생성합니다.")
-    public ResponseEntity<APIResponse<GoogleCalendarEventDto>> createEvent(
+    @Operation(summary = "JJDC 캘린더 일정 등록", description = "카테고리/브랜드/기간에 맞춰 AI 추천 혜택을 포함한 일정을 생성하고 알람으로 저장합니다.")
+    public ResponseEntity<APIResponse<NotityDto>> createEvent(
             @AuthenticationPrincipal MemberPrincipal principal,
             @RequestBody GoogleCalendarCreateEventRequest request
     ) {
-        GoogleCalendarEventDto event = googleCalendarService.createEvent(principal, request);
+        NotityDto notity = googleCalendarService.createEvent(principal, request);
         return ResponseEntity
                 .status(SuccessCode.GOOGLE_EVENT_CREATED.getStatus())
-                .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_CREATED, event));
+                .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_CREATED, notity));
     }
 
     @PatchMapping("/events/suggest")
-    @Operation(summary = "여러 일정 AI 설명 추가", description = "일정 ID 목록을 받아, 카테고리/브랜드를 추출하고 AI 응답을 설명에 이어붙입니다.")
+    @Operation(summary = "여러 일정 AI 설명 추가", description = "일정 ID 목록을 받아, 카테고리/브랜드를 추출하고 AI 응답을 설명에 새로 쓰기 합니다.")
     public ResponseEntity<APIResponse<List<GoogleCalendarSuggestResponse>>> appendSuggest(
             @AuthenticationPrincipal MemberPrincipal principal,
             @RequestBody GoogleCalendarSuggestRequest request
@@ -71,5 +78,17 @@ public class GoogleCalendarController {
         return ResponseEntity
                 .status(SuccessCode.GOOGLE_EVENT_UPDATED.getStatus())
                 .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_UPDATED, results));
+    }
+
+    @PutMapping("/events/manual")
+    @Operation(summary = "일정 수동 덮어쓰기", description = "eventId/startAt/[endAt]/suggest를 받아 일정 기간과 설명을 덮어쓰고 알람을 저장합니다. endAt은 없거나 시작보다 앞설 경우 startAt+1분으로 보정합니다.")
+    public ResponseEntity<APIResponse<NotityDto>> overwriteEvent(
+            @AuthenticationPrincipal MemberPrincipal principal,
+            @RequestBody GoogleCalendarManualUpdateRequest request
+    ) {
+        NotityDto notity = googleCalendarService.overwriteEvent(principal, request);
+        return ResponseEntity
+                .status(SuccessCode.GOOGLE_EVENT_UPDATED.getStatus())
+                .body(APIResponse.ok(SuccessCode.GOOGLE_EVENT_UPDATED, notity));
     }
 }

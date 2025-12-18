@@ -1,7 +1,6 @@
 package jojo.jjdc.googlecalendar.client;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +57,20 @@ public class GoogleCalendarClient {
     }
 
     /**
-     * 일정 본문을 업데이트한다.
+     * 일정 세부 내용을 갱신한다.
      */
-    public GoogleCalendarCreatedEventResponse patchEvent(String accessToken, String calendarId, String eventId, String description) {
+    public GoogleCalendarCreatedEventResponse patchEvent(String accessToken, String calendarId, String eventId, GoogleCalendarEventPatchRequest request) {
         String url = CALENDAR_BASE_URL + "/calendars/{calendarId}/events/{eventId}";
         HttpHeaders headers = createAuthHeaders(accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        GoogleCalendarPatchRequest patchRequest = new GoogleCalendarPatchRequest(description);
-        return execute(url, HttpMethod.PATCH, new HttpEntity<>(patchRequest, headers), GoogleCalendarCreatedEventResponse.class, calendarId, eventId);
+        return execute(
+                url,
+                HttpMethod.PATCH,
+                new HttpEntity<>(request, headers),
+                GoogleCalendarCreatedEventResponse.class,
+                calendarId,
+                eventId
+        );
     }
 
     /**
@@ -159,7 +164,7 @@ public class GoogleCalendarClient {
     public record GoogleCalendarEventInsertRequest(String summary, String description, GoogleEventDateTime start, GoogleEventDateTime end) {
     }
 
-    public record GoogleEventDateTime(OffsetDateTime dateTime) {
+    public record GoogleEventDateTime(Instant dateTime, String timeZone, String date) {
     }
 
     public record GoogleCalendarCreatedEventResponse(String id, String summary, String description, GoogleEventTime start, GoogleEventTime end) {
@@ -168,7 +173,7 @@ public class GoogleCalendarClient {
     public record GoogleCalendarEventDetailResponse(String id, String summary, String description, GoogleEventTime start, GoogleEventTime end) {
     }
 
-    public record GoogleCalendarPatchRequest(String description) {
+    public record GoogleCalendarEventPatchRequest(String summary, String description, GoogleEventDateTime start, GoogleEventDateTime end) {
     }
 
     public record GoogleCalendarListResponse(List<GoogleCalendarListItem> items) {

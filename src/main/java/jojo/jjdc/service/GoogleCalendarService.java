@@ -2,6 +2,7 @@ package jojo.jjdc.service;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -13,7 +14,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import jojo.jjdc.common.exception.BusinessException;
 import jojo.jjdc.common.exception.ErrorCode;
-import jojo.jjdc.googlecalendar.ai.AiServerResponse.AiSuggestion;
+import jojo.jjdc.ai.dto.AiRecommendationItem;
 import jojo.jjdc.googlecalendar.ai.GoogleCalendarAiService;
 import jojo.jjdc.googlecalendar.ai.GoogleCalendarAiResponse;
 import jojo.jjdc.googlecalendar.client.GoogleCalendarClient;
@@ -366,14 +367,14 @@ public class GoogleCalendarService {
                 .collect(Collectors.toList());
     }
 
-    private SuggestDto toAiSuggestion(AiSuggestion suggestion) {
-        if (suggestion == null) {
+    private SuggestDto toAiSuggestion(AiRecommendationItem item) {
+        if (item == null) {
             return null;
         }
         return new SuggestDto(
-                suggestion.suggest(),
-                parseOffset(suggestion.fromDate()),
-                parseOffset(suggestion.toDate())
+                item.message(),
+                parseOffset(item.startAt()),
+                parseOffset(item.endAt())
         );
     }
 
@@ -399,7 +400,12 @@ public class GoogleCalendarService {
         try {
             return OffsetDateTime.parse(text);
         } catch (DateTimeParseException ex) {
-            return null;
+            try {
+                LocalDate date = LocalDate.parse(text);
+                return date.atStartOfDay().atOffset(ZoneOffset.UTC);
+            } catch (DateTimeParseException ignored) {
+                return null;
+            }
         }
     }
 }

@@ -20,4 +20,9 @@ public class AppAiProperties {
      * AI 서버에서 제공하는 헬스체크 URL.
      */
     private String healthUrl = "http://localhost:8080/health";
+
+    /**
+     * AI 추천 API URL.
+     */
+    private String recommendUrl = "http://localhost:8000/api/recommend/ai";
 }

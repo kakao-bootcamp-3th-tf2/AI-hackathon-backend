@@ -37,6 +37,9 @@
 5. 샘플 API: `GET /api/google/calendar/primary/events?from=2024-08-01T00:00:00Z&to=2024-08-07T00:00:00Z`
    - Authorization 헤더에 `Bearer {서비스 Access Token}`을 넣고 호출.
    - `from`/`to`를 생략하면 기본값은 “오늘 00:00Z”부터 “+1일” 구간으로 처리된다.
+6. 사용자 계정에서 `"JJDC"`라는 캘린더만을 대상으로 동작하며, 존재하지 않으면 자동 생성한다.
+
+> 자세한 Google Calendar API 호출 정보는 `docs/GOOGLE_CALENDAR_API.md` 참고.
 
 ### 로컬 테스트 시나리오
 1. `.env` 혹은 `application-secret.yaml`에 Google Client/Secret, JWT Secret, DB 정보를 설정한다.

@@ -3,8 +3,11 @@ package jojo.jjdc.service;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import jojo.jjdc.googlecalendar.dto.GoogleCalendarEventDto;
 import jojo.jjdc.security.oauth.entity.GoogleOAuthToken;
@@ -31,6 +34,8 @@ public class GoogleCalendarService {
 
     private static final String CALENDAR_BASE_URL = "https://www.googleapis.com/calendar/v3";
     private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
+    private static final String JJDC_CALENDAR_SUMMARY = "JJDC";
+    private static final ZoneId DEFAULT_TIMEZONE = ZoneId.of("UTC");
 
     private final GoogleOAuthTokenService googleOAuthTokenService;
     private final RestTemplate restTemplate;
@@ -44,13 +49,15 @@ public class GoogleCalendarService {
     public List<GoogleCalendarEventDto> getPrimaryEvents(Long memberId, Instant from, Instant to) {
         GoogleOAuthToken token = googleOAuthTokenService.getByMemberId(memberId);
         String accessToken = ensureAccessToken(token);
+        String calendarId = ensureJjdcCalendarId(accessToken);
 
-        String url = UriComponentsBuilder.fromHttpUrl(CALENDAR_BASE_URL + "/calendars/primary/events")
+        String url = UriComponentsBuilder.fromHttpUrl(CALENDAR_BASE_URL + "/calendars/{calendarId}/events")
                 .queryParam("singleEvents", true)
                 .queryParam("orderBy", "startTime")
                 .queryParam("timeMin", from.truncatedTo(ChronoUnit.SECONDS))
                 .queryParam("timeMax", to.truncatedTo(ChronoUnit.SECONDS))
-                .build()
+                .buildAndExpand(calendarId)
+                .encode()
                 .toUriString();
 
         HttpHeaders headers = new HttpHeaders();
@@ -90,6 +97,64 @@ public class GoogleCalendarService {
 
     private Instant fromFallback() {
         return Instant.now();
+    }
+
+    private String ensureJjdcCalendarId(String accessToken) {
+        Optional<String> existing = findCalendarId(accessToken);
+        return existing.orElseGet(() -> createJjdcCalendar(accessToken));
+    }
+
+    private Optional<String> findCalendarId(String accessToken) {
+        String url = CALENDAR_BASE_URL + "/users/me/calendarList";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        ResponseEntity<GoogleCalendarListResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    GoogleCalendarListResponse.class
+            );
+        } catch (RestClientException ex) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, ex.getMessage());
+        }
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "캘린더 목록 조회 실패");
+        }
+        if (response.getBody().items() == null) {
+            return Optional.empty();
+        }
+        return response.getBody().items().stream()
+                .filter(item -> JJDC_CALENDAR_SUMMARY.equals(item.summary()))
+                .map(GoogleCalendarListItem::id)
+                .findFirst();
+    }
+
+    private String createJjdcCalendar(String accessToken) {
+        String url = CALENDAR_BASE_URL + "/calendars";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        Map<String, Object> body = Map.of(
+                "summary", JJDC_CALENDAR_SUMMARY,
+                "timeZone", DEFAULT_TIMEZONE.getId()
+        );
+        ResponseEntity<GoogleCalendarCreateResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(body, headers),
+                    GoogleCalendarCreateResponse.class
+            );
+        } catch (RestClientException ex) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, ex.getMessage());
+        }
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new BusinessException(ErrorCode.GOOGLE_CALENDAR_REQUEST_FAILED, "JJDC 캘린더 생성 실패");
+        }
+        return response.getBody().id();
     }
 
     private String ensureAccessToken(GoogleOAuthToken token) {
@@ -154,5 +219,17 @@ public class GoogleCalendarService {
             @JsonProperty("access_token") String accessToken,
             @JsonProperty("expires_in") Long expiresIn
     ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record GoogleCalendarListResponse(List<GoogleCalendarListItem> items) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record GoogleCalendarListItem(String id, String summary) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record GoogleCalendarCreateResponse(String id, String summary) {
     }
 }

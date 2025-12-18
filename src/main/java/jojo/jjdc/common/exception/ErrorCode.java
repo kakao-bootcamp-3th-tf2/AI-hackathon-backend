@@ -16,6 +16,7 @@ public enum ErrorCode {
     GOOGLE_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, "GOOGLE_001", "구글 연동 토큰을 찾을 수 없습니다."),
     GOOGLE_REFRESH_TOKEN_MISSING(HttpStatus.BAD_REQUEST, "GOOGLE_002", "구글 refresh token이 존재하지 않습니다. 재동의가 필요합니다."),
     GOOGLE_CALENDAR_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "GOOGLE_003", "구글 캘린더 요청이 실패했습니다."),
+    AI_SERVER_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "AI_001", "AI 서버 요청이 실패했습니다."),
 
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "SERVER_001", "서버 내부 오류가 발생했습니다.");
 

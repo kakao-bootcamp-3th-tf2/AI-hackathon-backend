@@ -11,6 +11,7 @@ public enum SuccessCode {
     GOOGLE_EVENTS_FETCHED(HttpStatus.OK, "GOOGLE_200", "구글 캘린더 이벤트 조회에 성공했습니다."),
     GOOGLE_EVENT_CREATED(HttpStatus.CREATED, "GOOGLE_201", "구글 캘린더 이벤트를 등록했습니다."),
     GOOGLE_EVENT_UPDATED(HttpStatus.OK, "GOOGLE_202", "구글 캘린더 이벤트를 업데이트했습니다."),
+    AI_HEALTH_FETCHED(HttpStatus.OK, "AI_200", "AI 서버 헬스체크에 성공했습니다."),
     NOTITY_FETCHED(HttpStatus.OK, "NOTITY_200", "알람 목록을 조회했습니다."),
     NOTITY_DELETED(HttpStatus.OK, "NOTITY_201", "알람을 삭제했습니다."),
     HEALTH_CHECK(HttpStatus.OK, "HEALTH_200", "서비스가 정상적으로 동작 중입니다.");

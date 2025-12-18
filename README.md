@@ -46,6 +46,10 @@
 
 > 자세한 Google Calendar API 호출 정보는 `docs/GOOGLE_CALENDAR_API.md` 참고.
 
+### AI 서버 연동
+- `app.ai.base-url`, `app.ai.health-url`을 `application-secret.yaml`에 지정해 FastAPI 서버 주소를 관리한다.
+- `GET /api/ai/health`는 `app.ai.health-url`을 호출해 상태 문자열을 반환한다.
+
 ### 로컬 테스트 시나리오
 1. `.env` 혹은 `application-secret.yaml`에 Google Client/Secret, JWT Secret, DB 정보를 설정한다.
 2. `./gradlew bootRun` 실행 후 브라우저에서 `http://localhost:8080/demo/index.html` 접속, “Google 로그인 시작” 버튼 클릭.

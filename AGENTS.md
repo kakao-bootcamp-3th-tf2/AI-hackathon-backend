@@ -11,3 +11,7 @@
 - Google Calendar 조회 파라미터를 선택 입력으로 바꾸고 기본값을 “오늘 00:00Z ~ +1일”로 처리하도록 백엔드 로직과 문서를 수정.
 - Google Calendar 연동 시 항상 `JJDC` 캘린더를 사용하도록 서비스 레이어를 수정하고, 없을 경우 자동 생성하도록 구현. 관련 동작/스펙을 `docs/GOOGLE_CALENDAR_API.md`에 정리.
 - 현재 변경 사항은 로컬 작업 상태(푸시 전).
+- Google Calendar 컨트롤러 로직을 무거운 응답 처리만 담당하고, 서비스는 MemberPrincipal 검증, 토큰/캘린더 관리, 이벤트 조회/DTO 변환을 기능별 메서드로 분리하도록 리팩토링.
+- Google Calendar 컨트롤러의 엔드포인트를 `/api/calendar/events`로 단순화하고 문서(README)도 일치시키는 경로 리팩토링 수행.
+- Google Calendar 일정 등록 플로우를 AI 응답, 문서화, SuccessCode/POST API 포함으로 단순화하면서 Redis 관련 구조는 제거함.
+- Swagger용 DTO에 필드 설명/예시를 붙여 인텔리센스에서 Request/Response 예시를 바로 확인할 수 있도록 개선함.

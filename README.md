@@ -8,7 +8,7 @@
   3. `OAuth2SuccessHandler`가 Google Access/Refresh Token을 `GoogleOAuthToken` 엔티티에 저장하고, 서비스 JWT(AT/RT)를 각각 JSON 본문 및 HttpOnly 쿠키로 발급.
   4. 응답은 `302 Location: https://fe.com/oauth2/redirect` + JSON `{accessToken, status, redirectUri}` 형태라 SPA Developer Tool에서 디버깅하기 쉽다.
   5. 프론트는 리다이렉트 페이지에서 JSON 응답으로 받은 Access Token을 저장하고 `GET /api/auth/status`를 호출해 `status`가 `PENDING`인지 확인 후 온보딩 화면으로 분기한다.
-- Google Calendar 호출은 `GET /api/google/calendar/primary/events` 샘플 API로 확인할 수 있다.
+- Google Calendar 호출은 `GET /api/calendar/events` 샘플 API로 확인할 수 있다.
 
 ### 엔티티 설계
 | 엔티티 | 주요 필드 | 비고 |
@@ -34,10 +34,11 @@
 2. OAuth Client ID에 `https://api-ec2-dns.com/login/oauth2/code/google`을 Redirect URI로 등록.
 3. `spring.security.oauth2.client.registration.google.scope`에 `https://www.googleapis.com/auth/calendar`가 포함되어야 한다.
 4. `GoogleCalendarService`는 Access Token 만료 시 Refresh Token으로 `https://oauth2.googleapis.com/token`에 재발급 요청 후 DB에 저장한다.
-5. 샘플 API: `GET /api/google/calendar/primary/events?from=2024-08-01T00:00:00Z&to=2024-08-07T00:00:00Z`
+5. 샘플 API: `GET /api/calendar/events?from=2024-08-01T00:00:00Z&to=2024-08-07T00:00:00Z`
    - Authorization 헤더에 `Bearer {서비스 Access Token}`을 넣고 호출.
    - `from`/`to`를 생략하면 기본값은 “오늘 00:00Z”부터 “+1일” 구간으로 처리된다.
 6. 사용자 계정에서 `"JJDC"`라는 캘린더만을 대상으로 동작하며, 존재하지 않으면 자동 생성한다.
+7. 일정 등록: `POST /api/calendar/events`로 `category`, `brand`, `startAt`, `endAt`을 JSON 본문으로 보내면 "#카테고리#브랜드" 제목의 일정이 AI 혜택 설명과 함께 생성된다.
 
 > 자세한 Google Calendar API 호출 정보는 `docs/GOOGLE_CALENDAR_API.md` 참고.
 
@@ -47,7 +48,7 @@
 3. Google 로그인 → 동의 화면에서 Calendar 전체 권한 허용.
 4. 리디렉션된 `http://localhost:8080/demo/oauth2-redirect.html`에서 Access Token과 회원 상태를 복사한다.
 5. Swagger Authorize 혹은 API 클라이언트에서 복사한 Access Token을 Bearer 값으로 넣은 뒤 `GET /api/auth/status` 호출하여 온보딩 분기를 확인한다.
-6. `GET /api/google/calendar/primary/events` 호출로 Sample Calendar 연동 확인.
+6. `GET /api/calendar/events` 호출로 Sample Calendar 연동 확인.
 
 #### 백엔드 내장 데모 페이지
 - 기본 설정(`app.front.redirect-uri`)은 백엔드가 제공하는 `demo/oauth2-redirect.html`을 가리킨다.

@@ -9,7 +9,7 @@ import jojo.jjdc.common.response.SuccessCode;
 import jojo.jjdc.domain.member.Member;
 import jojo.jjdc.security.jwt.MemberPrincipal;
 import jojo.jjdc.security.provider.JwtTokenProvider;
-import jojo.jjdc.service.member.MemberService;
+import jojo.jjdc.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -59,7 +59,7 @@ public class AuthController {
         String newRefreshToken = jwtTokenProvider.createRefreshToken(memberId);
         ResponseCookie refreshCookie = jwtTokenProvider.createRefreshCookie(newRefreshToken);
 
-        AuthTokenResponse response = new AuthTokenResponse(newAccessToken, member.getStatus());
+        AuthTokenResponse response = new AuthTokenResponse(newAccessToken);
 
         return ResponseEntity
                 .status(SuccessCode.AUTH_TOKEN_REFRESHED.getStatus())

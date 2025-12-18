@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import jojo.jjdc.domain.member.Member;
-import jojo.jjdc.service.member.MemberService;
+import jojo.jjdc.service.MemberService;
 import jojo.jjdc.security.jwt.MemberPrincipal;
 import jojo.jjdc.security.properties.JwtProperties;
 import lombok.RequiredArgsConstructor;

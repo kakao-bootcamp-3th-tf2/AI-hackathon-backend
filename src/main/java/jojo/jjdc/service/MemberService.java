@@ -1,4 +1,4 @@
-package jojo.jjdc.service.member;
+package jojo.jjdc.service;
 
 import jojo.jjdc.domain.member.Member;
 import jojo.jjdc.domain.member.MemberStatus;

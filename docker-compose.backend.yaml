@@ -1,0 +1,23 @@
+services:
+  backend:
+    image: ${BACKEND_DOCKER_IMAGE}
+    container_name: jjdc-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_CONFIG_IMPORT=file:/app/config/application-secret.yaml
+    volumes:
+      - ${SECRETS_PATH}:/app/config/application-secret.yaml:ro
+      - backend_logs:/app/logs
+    networks:
+      - jjdc-network
+
+networks:
+  jjdc-network:
+    name: jjdc-network
+    external: true
+
+volumes:
+  backend_logs:

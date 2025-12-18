@@ -5,3 +5,10 @@ spring:
   application:
     name: jjdc
 
+logging:
+  level:
+    root: INFO
+    com.example.learnspringsecurity: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    io.jsonwebtoken: DEBUG

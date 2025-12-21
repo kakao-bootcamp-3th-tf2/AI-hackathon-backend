@@ -65,7 +65,7 @@
 - jieun0824: 프론트 전담, 디자인, UI/UX 설계
 - rogi-rogi: PM, 백엔드 전담, 구글 캘린더 연동
 - Min-su-Jeong:
-- tayobus:
+- tayobus: AWS 인프라 관리 전담, FE 코드베이스 CI/CD
 
 <br/>
 
@@ -77,6 +77,7 @@
 <br/>
 
 ## 회고(개인)
+
 
 
 

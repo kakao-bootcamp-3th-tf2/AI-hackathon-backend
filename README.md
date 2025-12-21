@@ -64,20 +64,33 @@
 - KT20201224
 - jieun0824: 프론트 전담, 디자인, UI/UX 설계
 - rogi-rogi: PM, 백엔드 전담, 구글 캘린더 연동
-- Min-su-Jeong:
+- Min-su-Jeong: AWS 인프라 설계 전담, CI/CD 파이프라인 구축 및 안정화
 - tayobus: AWS 인프라 관리 전담, FE 코드베이스 CI/CD
 
 <br/>
 
 ## 트러블 슈팅(개인)
 
-
+#### Min-su-Jeong
+[![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white)](https://www.notion.so/2d03c62959b9802f8309e0f2b1618dd0?source=copy_link)
 
 
 <br/>
 
 ## 회고(개인)
 
+#### Min-su-Jeong
+- Keep
+    - GitHub CLI로 Actions 로그를 조회하며 원인 분석 → 피드백 시간 단축하기
+    - 문제 발생 시 "증상 → 원인 → 해결" 흐름으로 문서화하여 재발 방지하기
+
+- Problem
+    - 로컬(x86)에서 테스트 후 배포 환경(ARM64)에서 실패 → 환경 차이 검증이 미비했음
+    - Multi-stage Dockerfile 설계 시 에뮬레이션 제약을 사전에 파악하지 못함
+
+- Try
+    - PR 단계에서 타겟 아키텍처 빌드 테스트 추가 (ARM64 셀프호스트 러너 또는 네이티브 빌드 분리)
+    - 인프라 변경 시 체크리스트 도입: 버전 호환성, 크로스 플랫폼, 권한 정책
 
 
 

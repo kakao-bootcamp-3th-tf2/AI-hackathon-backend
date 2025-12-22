@@ -46,23 +46,23 @@
   </tr>
   <tr>
     <td align="center">
-      <img src="https://github.com/KT20201224.png" width="120" alt="KT20201224" /><br/>
+      <img src="https://github.com/KT20201224.png" width="120" height="120" alt="KT20201224" /><br/>
       <a href="https://github.com/KT20201224">@KT20201224</a>
     </td>
     <td align="center">
-      <img src="https://github.com/jieun0824.png" width="120" alt="jieun0824" /><br/>
+      <img src="https://github.com/jieun0824.png" width="120" height="120" alt="jieun0824" /><br/>
       <a href="https://github.com/jieun0824">@jieun0824</a>
     </td>
     <td align="center">
-      <img src="https://github.com/rogi-rogi.png" width="120" alt="rogi-rogi" /><br/>
+      <img src="https://github.com/rogi-rogi.png" width="120" height="120" alt="rogi-rogi" /><br/>
       <a href="https://github.com/rogi-rogi">@rogi-rogi</a>
     </td>
     <td align="center">
-      <img src="https://github.com/Min-su-Jeong.png" width="120" alt="Min-su-Jeong" /><br/>
+      <img src="https://github.com/Min-su-Jeong.png" width="120" height="120" alt="Min-su-Jeong" /><br/>
       <a href="https://github.com/Min-su-Jeong">@Min-su-Jeong</a>
     </td>
     <td align="center">
-      <img src="https://github.com/tayobus.png" width="120" alt="tayobus" /><br/>
+      <img src="https://github.com/tayobus.png" width="120" height="120" alt="tayobus" /><br/>
       <a href="https://github.com/tayobus">@tayobus</a>
     </td>
   </tr>
@@ -76,43 +76,7 @@
 
 <br/>
 
-## 트러블 슈팅(개인)
 
-#### Min-su-Jeong
-[![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white)](https://www.notion.so/2d03c62959b9802f8309e0f2b1618dd0?source=copy_link)
-
-
-<br/>
-
-## 회고(개인)
-
-#### Min-su-Jeong
-- Keep
-    - GitHub CLI로 Actions 로그를 조회하며 원인 분석 → 피드백 시간 단축하기
-    - 문제 발생 시 "증상 → 원인 → 해결" 흐름으로 문서화하여 재발 방지하기
-
-- Problem
-    - 로컬(x86)에서 테스트 후 배포 환경(ARM64)에서 실패 → 환경 차이 검증이 미비했음
-    - Multi-stage Dockerfile 설계 시 에뮬레이션 제약을 사전에 파악하지 못함
-
-- Try
-    - PR 단계에서 타겟 아키텍처 빌드 테스트 추가 (ARM64 셀프호스트 러너 또는 네이티브 빌드 분리)
-    - 인프라 변경 시 체크리스트 도입: 버전 호환성, 크로스 플랫폼, 권한 정책
-
-
-#### KT20201224
--  Keep
-    - api 사용부터 시작하는 것은 좋은 접근이다. (api로 시작하는 것은 MVP 단계에서 매우 강력)
-    - 끊임 없이 새로 적용할 수 있는 기술들을 생각해 본 건 좋았다.
-    - 기술적으로 미숙할 것 같은 사항은 사전에 기획 단계에서 어필
-
-- Problem
-    - 80% 정도 완성해두고, 생각이 앞서 나갔다. 필요한걸 100% 완성하고 push 한 후에 고도화를 진행해야 한다. "어느 정도 된 것 같아"라는 마인드를 버리자.
-    - 아무리 급해도 commit과 push 한방에 하지 말고, commit을 어느 정도는 나눠놔야한다. 실제로 돌리고 싶은 지점이 존재했는데 돌리지 못했다.
-
-- Try
-    - VectorDB를 활용해 사용자 혜택과 이벤트 간의 유사도를 계산하는 방식을 사용했다면 단순 프롬프팅보다 더 "사용자 맞춤형 혜택을 제공할 수 있지 않았을까"라는 생각이 들었다.
-    - 혜택 데이터 수집 시 OCR+LLM을 사용해 보는 과정에서 데이터 결측이 발생하는 지점을 기준을 가지고 테스트 해보지 않았는데, 어느 지점에서 데이터 유실이 발생하는지 알아보면 좋을것 같다.
 
 
 

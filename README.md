@@ -4,6 +4,13 @@
 
 본 서비스는 사용자가 혜택을 찾아보는 것이 아닌, **자연스럽게 활용**하도록 지원하며, 건강한 소비 습관을 만드는 것을 목표로 합니다.
 
+![](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![](https://img.shields.io/badge/Java-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![](https://img.shields.io/badge/SpringBoot-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![](https://img.shields.io/badge/GCP-4285F4?style=flat-square&logo=googlecloud&logoColor=white)
+![](https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white)
+![](https://img.shields.io/badge/GitHubActions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
 
 
 <br/>
@@ -91,6 +98,7 @@
 - Try
     - PR 단계에서 타겟 아키텍처 빌드 테스트 추가 (ARM64 셀프호스트 러너 또는 네이티브 빌드 분리)
     - 인프라 변경 시 체크리스트 도입: 버전 호환성, 크로스 플랫폼, 권한 정책
+
 
 
 
